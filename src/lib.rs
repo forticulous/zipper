@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, SeekFrom, Error, ErrorKind};
+use std::io::{self, SeekFrom};
 use std::mem;
 use std::slice;
 use std::path::Path;
@@ -20,13 +20,11 @@ pub fn open_file(filename: &String) -> io::Result<File> {
 
 pub fn read_str(file: &mut File, len: usize) -> io::Result<String> {
   let mut v: Vec<u8> = Vec::with_capacity(len);
-  // Safe because it was allocated with sufficient capacity
-  unsafe { v.set_len(len) };
-  let mut boxed: Box<[u8]> = v.into_boxed_slice();
-  
-  try!(file.read_exact(boxed.as_mut()));
+  for _ in 0..len { v.push(0) }
 
-  let s = String::from_utf8(boxed.into_vec()).expect("Not valid UTF-8");
+  try!(file.read_exact(&mut v));
+
+  let s = String::from_utf8(v).expect("Not valid UTF-8");
   Ok(s)
 }
 
@@ -66,11 +64,6 @@ pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result
     }
     try!(source.seek(SeekFrom::Current(-3)));
   }
-}
-
-pub fn get_file_size(file: &File) -> io::Result<u64> {
-  let metadata = try!(file.metadata());
-  Ok(metadata.len())
 }
 
 #[cfg(test)]

@@ -1,0 +1,6 @@
+[package]
+name = "zipper"
+version = "0.1.0"
+authors = ["Forticulous <forticulous@gmail.com>"]
+
+[dependencies]

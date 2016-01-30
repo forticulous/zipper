@@ -11,13 +11,13 @@ fn main() {
 
   let mut archive = Archive::new(path).expect("Failed to open archive");
 
-  let eocd: EndOfCentralDirectory = archive.read_eocd().expect("Failed to get EOCD");
-  println!("{:08x}", eocd.sig);
-  println!("{:?}\n", eocd);
-
-  let iter = archive.cd_iter().expect("Failed to get CD iter");
-  for cdfh in iter {
-    println!("- {:08x}", cdfh.sig);
-    println!("- {:?}\n", cdfh);
+  {
+    let iter = archive.cd_iter().expect("Failed to get CD iter");
+    for cdfh in iter {
+      println!("{}\n", cdfh);
+    }
   }
+
+  let eocd: EndOfCentralDirectory = archive.read_eocd().expect("Failed to get EOCD");
+  println!("{}\n", eocd);
 }

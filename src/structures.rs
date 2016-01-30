@@ -1,12 +1,43 @@
 use std::fs::File;
+use std::io::{self, SeekFrom};
 use std::io::prelude::*;
-use std::io::SeekFrom;
+use std::path::Path;
 
-use functions::{find_sig_position, read_cdfh, read_string};
+use functions::{find_sig_position, read_cdfh, read_string, read_eocd};
 
 // Constants
 pub const EOCD_SIG: u32 = 0x06054b50;
 pub const CDFH_SIG: u32 = 0x02014b50;
+
+pub struct Archive {
+  file: File
+}
+
+impl Archive {
+  pub fn new(path: &Path) -> io::Result<Archive> {
+    let file = try!(File::open(path));
+    
+    let archive = Archive {
+      file: file
+    };
+    Ok(archive)
+  }
+
+  pub fn read_eocd(&mut self) -> io::Result<EndOfCentralDirectory> {
+    read_eocd(&mut self.file)
+  }
+ 
+  pub fn cd_iter(&mut self) -> io::Result<CentralDirectoryIter> {
+    let eocd = try!(self.read_eocd());
+    let cdfh_start: u32 = eocd.cd_start_offset;
+    self.file.seek(SeekFrom::Start(cdfh_start as u64)).expect("Failed to seek");
+
+    let iter = CentralDirectoryIter {
+      file: &mut self.file
+    };
+    Ok(iter)
+  }
+}
 
 pub struct CentralDirectoryIter<'a> {
   file: &'a mut File
@@ -25,6 +56,7 @@ impl<'a> CentralDirectoryIter<'a> {
 
 impl<'a> Iterator for CentralDirectoryIter<'a> {
   type Item = (CentralDirectoryFileHeader, String);
+
   fn next(&mut self) -> Option<(CentralDirectoryFileHeader, String)> {
     let result = read_cdfh(self.file);
     if result.is_err() {
@@ -32,15 +64,19 @@ impl<'a> Iterator for CentralDirectoryIter<'a> {
     }
 
     let cdfh: CentralDirectoryFileHeader = result.unwrap();
-    let filename: String = read_string(self.file, cdfh.file_name_len as usize).expect("Failed to read file name");
+    let filename = if cdfh.file_name_len > 0 {
+      read_string(self.file, cdfh.file_name_len as usize).expect("Failed to read file name")
+    } else {
+      String::new()
+    };
     if cdfh.extra_field_len > 0 {
-        self.file.seek(SeekFrom::Current(cdfh.extra_field_len as i64)).expect("Failed to seek");
+      self.file.seek(SeekFrom::Current(cdfh.extra_field_len as i64)).expect("Failed to seek");
     }
     if cdfh.comment_len > 0 {
-        self.file.seek(SeekFrom::Current(cdfh.comment_len as i64)).expect("Failed to seek");
+      self.file.seek(SeekFrom::Current(cdfh.comment_len as i64)).expect("Failed to seek");
     }
 
-    Some((CentralDirectoryFileHeader::new(), String::new()))
+    Some((cdfh, filename))
   }
 }
 

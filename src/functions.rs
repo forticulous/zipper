@@ -7,10 +7,6 @@ use std::path::Path;
 
 use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory};
 
-pub fn unzip(filename: &String) -> io::Result<()> {
-  Ok(())
-}
-
 pub fn open_file(filename: &String) -> io::Result<File> {
   let path: &Path = Path::new(filename);  
   let file = try!(File::open(path));
@@ -36,7 +32,7 @@ pub fn read_cdfh(file: &mut File) -> io::Result<CentralDirectoryFileHeader> {
   Ok(cdfh)
 }
 
-pub fn get_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
+pub fn read_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
   let mut eocd = EndOfCentralDirectory::new(); 
   
   let eocd_start = try!(find_sig_position(file, eocd.sig));
@@ -66,12 +62,6 @@ pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result
 mod test {
   use super::*;
   use std::io::Cursor;
-
-  #[test]
-  fn unzip_test() {
-    let result = unzip(&String::from("archive.zip"));
-    assert!(result.is_ok());
-  }
 
   #[test]
   fn get_file() {

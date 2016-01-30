@@ -1,25 +1,24 @@
 extern crate zipper;
 
 use std::env;
-use std::fs::File;
+use std::path::Path;
 
-use zipper::{EndOfCentralDirectory, CentralDirectoryFileHeader, CentralDirectoryIter};
+use zipper::{Archive, EndOfCentralDirectory};
 
 fn main() {
   let filename = env::args().nth(1).expect("Missing filename argument");
-  let mut file: File = zipper::open_file(&filename).expect("Couldn't open file");
+  let path: &Path = Path::new(&filename);
 
-  let eocd_start: u64 = zipper::find_sig_position(&mut file, zipper::EOCD_SIG).unwrap();
-  println!("EOCD starts {}", eocd_start); 
+  let mut archive = Archive::new(path).expect("Failed to open archive");
 
-  let eocd: EndOfCentralDirectory = zipper::get_eocd(&mut file).expect("Failed to get EOCD");
+  let eocd: EndOfCentralDirectory = archive.read_eocd().expect("Failed to get EOCD");
   println!("{:08x}", eocd.sig);
-  println!("{:?}", eocd);
+  println!("{:?}\n", eocd);
 
-  let mut iter = CentralDirectoryIter::new(&mut file);
+  let iter = archive.cd_iter().expect("Failed to get CD iter");
   for (cdfh, filename) in iter {
     println!("- {:08x}", cdfh.sig);
     println!("- {:?}", cdfh);
-    println!("- {}", filename);
+    println!("- {}\n", filename);
   }
 }

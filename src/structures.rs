@@ -1,7 +1,48 @@
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::SeekFrom;
+
+use functions::{find_sig_position, read_cdfh, read_string};
 
 // Constants
 pub const EOCD_SIG: u32 = 0x06054b50;
 pub const CDFH_SIG: u32 = 0x02014b50;
+
+pub struct CentralDirectoryIter<'a> {
+  file: &'a mut File
+}
+
+impl<'a> CentralDirectoryIter<'a> {
+  pub fn new(file: &'a mut File) -> CentralDirectoryIter {
+    let cdfh_start: u64 = find_sig_position(file, CDFH_SIG).expect("Malformed file");
+    file.seek(SeekFrom::Start(cdfh_start)).expect("Failed to seek");
+
+    CentralDirectoryIter {
+      file: file
+    }
+  }
+}
+
+impl<'a> Iterator for CentralDirectoryIter<'a> {
+  type Item = (CentralDirectoryFileHeader, String);
+  fn next(&mut self) -> Option<(CentralDirectoryFileHeader, String)> {
+    let result = read_cdfh(self.file);
+    if result.is_err() {
+        return None;
+    }
+
+    let cdfh: CentralDirectoryFileHeader = result.unwrap();
+    let filename: String = read_string(self.file, cdfh.file_name_len as usize).expect("Failed to read file name");
+    if cdfh.extra_field_len > 0 {
+        self.file.seek(SeekFrom::Current(cdfh.extra_field_len as i64)).expect("Failed to seek");
+    }
+    if cdfh.comment_len > 0 {
+        self.file.seek(SeekFrom::Current(cdfh.comment_len as i64)).expect("Failed to seek");
+    }
+
+    Some((CentralDirectoryFileHeader::new(), String::new()))
+  }
+}
 
 #[repr(packed)]
 #[derive(Debug)]

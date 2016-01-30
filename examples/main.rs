@@ -16,9 +16,8 @@ fn main() {
   println!("{:?}\n", eocd);
 
   let iter = archive.cd_iter().expect("Failed to get CD iter");
-  for (cdfh, filename) in iter {
+  for cdfh in iter {
     println!("- {:08x}", cdfh.sig);
-    println!("- {:?}", cdfh);
-    println!("- {}\n", filename);
+    println!("- {:?}\n", cdfh);
   }
 }

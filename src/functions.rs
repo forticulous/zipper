@@ -7,6 +7,18 @@ use std::path::Path;
 
 use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory};
 
+enum ArchiveStructure {
+  CentralDirectoryFileHeader,
+  EndOfCentralDirectory
+}
+
+fn constant_size_of(part: ArchiveStructure) -> usize {
+  match part {
+    ArchiveStructure::CentralDirectoryFileHeader => 46,
+    ArchiveStructure::EndOfCentralDirectory      => 22
+  }
+}
+
 pub fn open_file(filename: &String) -> io::Result<File> {
   let path: &Path = Path::new(filename);  
   let file = try!(File::open(path));
@@ -26,8 +38,23 @@ pub fn read_string(file: &mut File, len: usize) -> io::Result<String> {
 pub fn read_cdfh(file: &mut File) -> io::Result<CentralDirectoryFileHeader> {
   let mut cdfh = CentralDirectoryFileHeader::new();
 
-  let slice: &mut [u8] = unsafe { slice::from_raw_parts_mut(&mut cdfh as *mut _ as *mut u8, mem::size_of_val(&cdfh)) };
-  try!(file.read_exact(slice));
+  {
+    let slice: &mut [u8] = unsafe { 
+      slice::from_raw_parts_mut(&mut cdfh as *mut _ as *mut u8, constant_size_of(ArchiveStructure::CentralDirectoryFileHeader)) 
+    };
+    try!(file.read_exact(slice));
+  }
+  if cdfh.file_name_len > 0 {
+    cdfh.file_name = try!(read_string(file, cdfh.file_name_len as usize));
+  }
+  if cdfh.extra_field_len > 0 {
+    // TODO: Skip for now
+    try!(file.seek(SeekFrom::Current(cdfh.extra_field_len as i64)));
+  }
+  if cdfh.comment_len > 0 {
+    // TODO: Skip for now
+    try!(file.seek(SeekFrom::Current(cdfh.comment_len as i64)));
+  }
 
   Ok(cdfh)
 }
@@ -38,7 +65,9 @@ pub fn read_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
   let eocd_start = try!(find_sig_position(file, eocd.sig));
   try!(file.seek(SeekFrom::Start(eocd_start)));
 
-  let slice: &mut [u8] = unsafe { slice::from_raw_parts_mut(&mut eocd as *mut _ as *mut u8, mem::size_of_val(&eocd)) };
+  let slice: &mut [u8] = unsafe { 
+    slice::from_raw_parts_mut(&mut eocd as *mut _ as *mut u8, constant_size_of(ArchiveStructure::EndOfCentralDirectory))
+  };
   try!(file.read_exact(slice));
 
   Ok(eocd)
@@ -59,7 +88,7 @@ pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
   use super::*;
   use std::io::Cursor;
 

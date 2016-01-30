@@ -3,7 +3,7 @@ use std::io::{self, SeekFrom};
 use std::io::prelude::*;
 use std::path::Path;
 
-use functions::{find_sig_position, read_cdfh, read_string, read_eocd};
+use functions::{read_cdfh, read_eocd};
 
 // Constants
 pub const EOCD_SIG: u32 = 0x06054b50;
@@ -43,40 +43,17 @@ pub struct CentralDirectoryIter<'a> {
   file: &'a mut File
 }
 
-impl<'a> CentralDirectoryIter<'a> {
-  pub fn new(file: &'a mut File) -> CentralDirectoryIter {
-    let cdfh_start: u64 = find_sig_position(file, CDFH_SIG).expect("Malformed file");
-    file.seek(SeekFrom::Start(cdfh_start)).expect("Failed to seek");
-
-    CentralDirectoryIter {
-      file: file
-    }
-  }
-}
-
 impl<'a> Iterator for CentralDirectoryIter<'a> {
-  type Item = (CentralDirectoryFileHeader, String);
+  type Item = CentralDirectoryFileHeader;
 
-  fn next(&mut self) -> Option<(CentralDirectoryFileHeader, String)> {
+  fn next(&mut self) -> Option<CentralDirectoryFileHeader> {
     let result = read_cdfh(self.file);
     if result.is_err() {
         return None;
     }
 
-    let cdfh: CentralDirectoryFileHeader = result.unwrap();
-    let filename = if cdfh.file_name_len > 0 {
-      read_string(self.file, cdfh.file_name_len as usize).expect("Failed to read file name")
-    } else {
-      String::new()
-    };
-    if cdfh.extra_field_len > 0 {
-      self.file.seek(SeekFrom::Current(cdfh.extra_field_len as i64)).expect("Failed to seek");
-    }
-    if cdfh.comment_len > 0 {
-      self.file.seek(SeekFrom::Current(cdfh.comment_len as i64)).expect("Failed to seek");
-    }
-
-    Some((cdfh, filename))
+    let cdfh = result.unwrap();
+    Some(cdfh)
   }
 }
 
@@ -99,7 +76,10 @@ pub struct CentralDirectoryFileHeader {
   pub file_start_disk_num: u16,
   pub internal_file_attr: u16,
   pub external_file_attr: u32,
-  pub local_file_header_start: u32
+  pub local_file_header_start: u32,
+  pub file_name: String,
+  pub extra_field: String,
+  pub comment: String
 }
 
 impl CentralDirectoryFileHeader {
@@ -121,7 +101,10 @@ impl CentralDirectoryFileHeader {
       file_start_disk_num: 0,
       internal_file_attr: 0,
       external_file_attr: 0,
-      local_file_header_start: 0
+      local_file_header_start: 0,
+      file_name: String::new(),
+      extra_field: String::new(),
+      comment: String::new()
     }
   }
 }

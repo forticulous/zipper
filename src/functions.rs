@@ -5,17 +5,19 @@ use std::mem;
 use std::slice;
 use std::path::Path;
 
-use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory};
+use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory, LocalFileHeader};
 
 enum ArchiveStructure {
   CentralDirectoryFileHeader,
-  EndOfCentralDirectory
+  EndOfCentralDirectory,
+  LocalFileHeader
 }
 
 fn constant_size_of(part: ArchiveStructure) -> usize {
   match part {
     ArchiveStructure::CentralDirectoryFileHeader => 46,
-    ArchiveStructure::EndOfCentralDirectory      => 22
+    ArchiveStructure::EndOfCentralDirectory      => 22,
+    ArchiveStructure::LocalFileHeader            => 30
   }
 }
 
@@ -71,6 +73,28 @@ pub fn read_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
   try!(file.read_exact(slice));
 
   Ok(eocd)
+}
+
+pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> {
+  let mut lfh = LocalFileHeader::new();
+
+  try!(file.seek(SeekFrom::Start(lfh_start as u64)));
+
+  {
+    let slice: &mut [u8] = unsafe {
+      slice::from_raw_parts_mut(&mut lfh as *mut _ as *mut u8, constant_size_of(ArchiveStructure::LocalFileHeader))
+    };
+    try!(file.read_exact(slice));
+  }
+  if lfh.file_name_len > 0 {
+    lfh.file_name = try!(read_string(file, lfh.file_name_len as usize));
+  }
+  if lfh.extra_field_len > 0 {
+    // TODO: Skip for now
+    try!(file.seek(SeekFrom::Current(lfh.extra_field_len as i64)));
+  }
+
+  Ok(lfh)
 }
 
 pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result<u64> {

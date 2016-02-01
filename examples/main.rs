@@ -2,8 +2,9 @@ extern crate zipper;
 
 use std::env;
 use std::path::Path;
+use std::mem;
 
-use zipper::{Archive, EndOfCentralDirectory};
+use zipper::{Archive, EndOfCentralDirectory, CentralDirectoryFileHeader};
 
 fn main() {
   let filename = env::args().nth(1).expect("Missing filename argument");
@@ -11,11 +12,14 @@ fn main() {
 
   let mut archive = Archive::new(path).expect("Failed to open archive");
 
-  {
-    let iter = archive.cd_iter().expect("Failed to get CD iter");
-    for cdfh in iter {
-      println!("{}\n", cdfh);
-    }
+  let vec_cdfh: Vec<CentralDirectoryFileHeader> = archive.cd_iter().unwrap().collect();
+
+  for cdfh in vec_cdfh {
+    println!("{}\n", cdfh);
+
+    let lfh_start = cdfh.local_file_header_start;
+    let lfh = archive.read_lfh(lfh_start).expect("Failed to read lfh");
+    println!("{}\n", lfh);
   }
 
   let eocd: EndOfCentralDirectory = archive.read_eocd().expect("Failed to get EOCD");

@@ -114,11 +114,17 @@ impl fmt::Display for CentralDirectoryFileHeader {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     writeln!(f, "CentralDirectoryFileHeader {{").and(
     writeln!(f, "  sig: {:08x},", self.sig)).and(
+    writeln!(f, "  created_ver: {},", self.created_ver)).and(
+    writeln!(f, "  extract_ver: {},", self.extract_ver)).and(
+    writeln!(f, "  compression_method: {},", self.compression_method)).and(
+    writeln!(f, "  crc_32: {},", self.crc_32)).and(
     writeln!(f, "  compressed_size: {},", self.compressed_size)).and(
     writeln!(f, "  uncompressed_size: {},", self.uncompressed_size)).and(
     writeln!(f, "  file_name_len: {},", self.file_name_len)).and(
     writeln!(f, "  extra_field_len: {},", self.extra_field_len)).and(
     writeln!(f, "  comment_len: {},", self.comment_len)).and(
+    writeln!(f, "  file_start_disk_num: {},", self.file_start_disk_num)).and(
+    writeln!(f, "  local_file_header_start: {},", self.local_file_header_start)).and(
     writeln!(f, "  file_name: \"{}\",", self.file_name)).and(
     writeln!(f, "  extra_field: \"{}\",", self.extra_field)).and(
     writeln!(f, "  comment: \"{}\",", self.comment)).and(

@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, SeekFrom, Error, ErrorKind};
+use std::io::{self, BufReader, SeekFrom, Error, ErrorKind};
 use std::mem;
 use std::slice;
 use std::path::Path;
@@ -95,6 +95,21 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
   }
 
   Ok(lfh)
+}
+
+pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> io::Result<Vec<u8>> {
+  let lfh_data_start = cdfh.local_file_header_start as usize +
+    constant_size_of(ArchiveStructure::LocalFileHeader) +
+    cdfh.file_name_len as usize +
+    cdfh.extra_field_len as usize;
+  let data_len = cdfh.compressed_size as usize;
+
+  try!(file.seek(SeekFrom::Start(lfh_data_start as u64)));
+
+  let mut buf_read = BufReader::with_capacity(data_len, file);
+  let bytes: Vec<u8> = try!(buf_read.fill_buf()).to_vec();
+
+  Ok(bytes)
 }
 
 pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result<u64> {

@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::fmt;
 
-use functions::{read_cdfh, read_eocd, read_lfh};
+use functions::{read_cdfh, read_eocd, read_lfh, read_lfh_raw_data};
 
 // Constants
 pub const EOCD_SIG: u32 = 0x06054b50;
@@ -29,6 +29,14 @@ impl Archive {
     read_eocd(&mut self.file)
   }
  
+  pub fn read_lfh(&mut self, lfh_start: u32) -> io::Result<LocalFileHeader> {
+    read_lfh(&mut self.file, lfh_start)
+  }
+
+  pub fn read_lfh_raw_data(&mut self, cdfh: &CentralDirectoryFileHeader) -> io::Result<Vec<u8>> {
+    read_lfh_raw_data(&mut self.file, cdfh)
+  }
+
   pub fn cd_iter(&mut self) -> io::Result<CentralDirectoryIter> {
     let eocd = try!(self.read_eocd());
     let cdfh_start: u32 = eocd.cd_start_offset;
@@ -38,10 +46,6 @@ impl Archive {
       file: &mut self.file
     };
     Ok(iter)
-  }
-
-  pub fn read_lfh(&mut self, lfh_start: u32) -> io::Result<LocalFileHeader> {
-    read_lfh(&mut self.file, lfh_start)
   }
 }
 

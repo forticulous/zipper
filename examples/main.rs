@@ -2,7 +2,6 @@ extern crate zipper;
 
 use std::env;
 use std::path::Path;
-use std::mem;
 
 use zipper::{Archive, EndOfCentralDirectory, CentralDirectoryFileHeader};
 

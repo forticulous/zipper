@@ -165,7 +165,7 @@ mod tests {
   use super::*;
   use std::io::Cursor;
   use std::io::prelude::*;
-  use structures::EOCD_SIG;
+  use structures::Signature;
 
   extern crate flate2;
   use self::flate2::Compression;
@@ -182,7 +182,7 @@ mod tests {
     let bytes: &[u8] = &[0, 0, 0x50, 0x4b, 0x05, 0x06, 0, 0];  
     let mut cursor = Cursor::new(bytes);
 
-    let res = find_sig_position(&mut cursor, EOCD_SIG);
+    let res = find_sig_position(&mut cursor, Signature::EndOfCentralDirectory.sig_byte());
     assert!(res.is_ok());
     assert_eq!(2u64, res.unwrap());
   }

@@ -6,10 +6,22 @@ use std::fmt;
 
 use functions::{read_cdfh, read_eocd, read_lfh, read_lfh_raw_data};
 
-// Constants
-pub const EOCD_SIG: u32 = 0x06054b50;
-pub const CDFH_SIG: u32 = 0x02014b50;
-pub const LFH_SIG: u32  = 0x04034b50;
+#[derive(Debug)]
+pub enum Signature {
+  EndOfCentralDirectory,
+  CentralDirectoryFileHeader,
+  LocalFileHeader
+}
+
+impl Signature {
+  pub fn sig_byte(&self) -> u32 {
+    match *self {
+      Signature::EndOfCentralDirectory      => 0x06054b50,
+      Signature::CentralDirectoryFileHeader => 0x02014b50,
+      Signature::LocalFileHeader            => 0x04034b50
+    }
+  }
+}
 
 pub struct Archive {
   file: File
@@ -95,7 +107,7 @@ pub struct CentralDirectoryFileHeader {
 impl CentralDirectoryFileHeader {
   pub fn new() -> CentralDirectoryFileHeader {
     CentralDirectoryFileHeader {
-      sig: CDFH_SIG,
+      sig: Signature::CentralDirectoryFileHeader.sig_byte(),
       created_ver: 0,
       extract_ver: 0,
       general_bit_flag: 0,
@@ -165,7 +177,7 @@ pub struct EndOfCentralDirectory {
 impl EndOfCentralDirectory {
   pub fn new() -> EndOfCentralDirectory {
     EndOfCentralDirectory { 
-      sig: EOCD_SIG, 
+      sig: Signature::EndOfCentralDirectory.sig_byte(), 
       this_disk_num: 0, 
       cd_start_disk: 0,
       cd_records_on_this_disk: 0,
@@ -213,7 +225,7 @@ pub struct LocalFileHeader {
 impl LocalFileHeader {
   pub fn new() -> LocalFileHeader {
     LocalFileHeader {
-      sig: LFH_SIG,
+      sig: Signature::LocalFileHeader.sig_byte(),
       extract_ver: 0,
       general_bit_flag: 0,
       compression_method: 0,

@@ -11,5 +11,6 @@ fn main() {
 
   let mut archive = Archive::new(path).expect("Failed to open archive");
   archive.print_info().expect("print_info panic");
+  //archive.unzip().expect("unzip panic");
 }
 

@@ -133,14 +133,17 @@ pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> 
   Ok(bytes)
 }
 
-pub fn decompress_file_data(compressed: Vec<u8>, method: CompressionMethod) -> io::Result<Vec<u8>> {
+pub fn decompress_file_data(raw: Vec<u8>, method: CompressionMethod) -> io::Result<Vec<u8>> {
+  if CompressionMethod::Store == method {
+    return Ok(raw);
+  }
   if CompressionMethod::Deflate != method {
     return Err(Error::new(ErrorKind::Other, "Unsupported compression method"));
   }
 
-  let mut decompressed: Vec<u8> = Vec::with_capacity(compressed.len());
-  let compressed_cursor = Cursor::new(compressed);
-  let mut decoder = DeflateDecoder::new(compressed_cursor);
+  let mut decompressed: Vec<u8> = Vec::with_capacity(raw.len());
+  let raw_cursor = Cursor::new(raw);
+  let mut decoder = DeflateDecoder::new(raw_cursor);
 
   let result = decoder.read_to_end(&mut decompressed);
 

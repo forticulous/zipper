@@ -117,6 +117,14 @@ impl CentralDirectoryFileHeader {
       comment: String::new()
     }
   }
+
+  pub fn is_directory(&self) -> bool {
+    !self.file_name.is_empty() && self.file_name.ends_with("/")
+  }
+
+  pub fn is_file(&self) -> bool {
+    !self.file_name.is_empty() && !self.file_name.ends_with("/")
+  }
 }
 
 impl fmt::Display for CentralDirectoryFileHeader {
@@ -219,6 +227,14 @@ impl LocalFileHeader {
       file_name: String::new(),
       extra_field: String::new()
     }
+  }
+
+  pub fn is_directory(&self) -> bool {
+    !self.file_name.is_empty() && self.file_name.ends_with("/")
+  }
+
+  pub fn is_file(&self) -> bool {
+    !self.file_name.is_empty() && !self.file_name.ends_with("/")
   }
 }
 

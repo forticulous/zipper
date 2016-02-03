@@ -5,6 +5,9 @@ use std::mem;
 use std::slice;
 use std::path::Path;
 
+extern crate flate2;
+use self::flate2::{Decompress, Flush};
+
 use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory, LocalFileHeader};
 
 enum ArchiveStructure {
@@ -110,6 +113,19 @@ pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> 
   let bytes: Vec<u8> = try!(buf_read.fill_buf()).to_vec();
 
   Ok(bytes)
+}
+
+pub fn uncompress_file_data(compressed: Vec<u8>, compression_method: u16) -> io::Result<Vec<u8>> {
+  if compression_method != 8u16 {
+    return Err(Error::new(ErrorKind::Other, "Unsupported compression method"));
+  }
+
+  let mut decompressed: Vec<u8> = Vec::with_capacity(compressed.len());
+  let mut decomp = Decompress::new(false);
+
+  decomp.decompress_vec(&compressed[..], &mut decompressed, Flush::Finish).expect("Failed to decompress file data");
+
+  Ok(decompressed)
 }
 
 pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result<u64> {

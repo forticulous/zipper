@@ -14,7 +14,9 @@ fn main() {
   let vec_cdfh: Vec<CentralDirectoryFileHeader> = archive.cd_iter().unwrap().collect();
 
   for cdfh in vec_cdfh {
-    println!("{}\n", cdfh);
+    println!("{}", cdfh);
+    println!("dir?  {}", cdfh.is_directory());
+    println!("file? {}\n", cdfh.is_file());
 
     let lfh_start = cdfh.local_file_header_start;
     let lfh = archive.read_lfh(lfh_start).expect("Failed to read lfh");

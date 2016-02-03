@@ -16,11 +16,24 @@ enum ArchiveStructure {
   LocalFileHeader
 }
 
-fn constant_size_of(part: ArchiveStructure) -> usize {
-  match part {
-    ArchiveStructure::CentralDirectoryFileHeader => 46,
-    ArchiveStructure::EndOfCentralDirectory      => 22,
-    ArchiveStructure::LocalFileHeader            => 30
+impl ArchiveStructure {
+  fn constant_size_of(&self) -> usize {
+    match *self {
+      ArchiveStructure::CentralDirectoryFileHeader => 46,
+      ArchiveStructure::EndOfCentralDirectory      => 22,
+      ArchiveStructure::LocalFileHeader            => 30
+    }
+  }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum CompressionMethod {
+  Deflate
+}
+
+impl CompressionMethod {
+  fn from_code(code: u16) -> Option<CompressionMethod> {
+    if code == 8u16 { Some(CompressionMethod::Deflate) } else { None }
   }
 }
 
@@ -45,7 +58,7 @@ pub fn read_cdfh(file: &mut File) -> io::Result<CentralDirectoryFileHeader> {
 
   {
     let slice: &mut [u8] = unsafe { 
-      slice::from_raw_parts_mut(&mut cdfh as *mut _ as *mut u8, constant_size_of(ArchiveStructure::CentralDirectoryFileHeader)) 
+      slice::from_raw_parts_mut(&mut cdfh as *mut _ as *mut u8, ArchiveStructure::CentralDirectoryFileHeader.constant_size_of()) 
     };
     try!(file.read_exact(slice));
   }
@@ -71,7 +84,7 @@ pub fn read_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
   try!(file.seek(SeekFrom::Start(eocd_start)));
 
   let slice: &mut [u8] = unsafe { 
-    slice::from_raw_parts_mut(&mut eocd as *mut _ as *mut u8, constant_size_of(ArchiveStructure::EndOfCentralDirectory))
+    slice::from_raw_parts_mut(&mut eocd as *mut _ as *mut u8, ArchiveStructure::EndOfCentralDirectory.constant_size_of())
   };
   try!(file.read_exact(slice));
 
@@ -85,7 +98,7 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
 
   {
     let slice: &mut [u8] = unsafe {
-      slice::from_raw_parts_mut(&mut lfh as *mut _ as *mut u8, constant_size_of(ArchiveStructure::LocalFileHeader))
+      slice::from_raw_parts_mut(&mut lfh as *mut _ as *mut u8, ArchiveStructure::LocalFileHeader.constant_size_of())
     };
     try!(file.read_exact(slice));
   }
@@ -102,7 +115,7 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
 
 pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> io::Result<Vec<u8>> {
   let lfh_data_start = cdfh.local_file_header_start as usize +
-    constant_size_of(ArchiveStructure::LocalFileHeader) +
+    ArchiveStructure::LocalFileHeader.constant_size_of() +
     cdfh.file_name_len as usize +
     cdfh.extra_field_len as usize;
   let data_len = cdfh.compressed_size as usize;
@@ -115,8 +128,8 @@ pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> 
   Ok(bytes)
 }
 
-pub fn decompress_file_data(compressed: Vec<u8>, compression_method: u16) -> io::Result<Vec<u8>> {
-  if compression_method != 8u16 {
+pub fn decompress_file_data(compressed: Vec<u8>, method: CompressionMethod) -> io::Result<Vec<u8>> {
+  if CompressionMethod::Deflate != method {
     return Err(Error::new(ErrorKind::Other, "Unsupported compression method"));
   }
 
@@ -181,9 +194,15 @@ mod tests {
     let mut compressed: Vec<u8> = Vec::new();
 
     encoder.read_to_end(&mut compressed).unwrap();
-    let decompressed = decompress_file_data(compressed, 8u16).unwrap();
+    let decompressed = decompress_file_data(compressed, CompressionMethod::Deflate).unwrap();
     
     assert_eq!(bytes, &decompressed[..]);
+  }
+
+  #[test]
+  fn deflate_from_code() {
+    let method = CompressionMethod::from_code(8u16).unwrap();
+    assert_eq!(CompressionMethod::Deflate, method);
   }
 
 }

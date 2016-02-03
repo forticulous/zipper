@@ -1,12 +1,12 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, BufReader, SeekFrom, Error, ErrorKind};
+use std::io::{self, BufReader, Cursor, SeekFrom, Error, ErrorKind};
 use std::mem;
 use std::slice;
 use std::path::Path;
 
 extern crate flate2;
-use self::flate2::{Decompress, Flush};
+use self::flate2::read::DeflateDecoder;
 
 use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory, LocalFileHeader};
 
@@ -115,15 +115,20 @@ pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> 
   Ok(bytes)
 }
 
-pub fn uncompress_file_data(compressed: Vec<u8>, compression_method: u16) -> io::Result<Vec<u8>> {
+pub fn decompress_file_data(compressed: Vec<u8>, compression_method: u16) -> io::Result<Vec<u8>> {
   if compression_method != 8u16 {
     return Err(Error::new(ErrorKind::Other, "Unsupported compression method"));
   }
 
   let mut decompressed: Vec<u8> = Vec::with_capacity(compressed.len());
-  let mut decomp = Decompress::new(false);
+  let compressed_cursor = Cursor::new(compressed);
+  let mut decoder = DeflateDecoder::new(compressed_cursor);
 
-  decomp.decompress_vec(&compressed[..], &mut decompressed, Flush::Finish).expect("Failed to decompress file data");
+  let result = decoder.read_to_end(&mut decompressed);
+
+  if result.is_err() {
+    println!("\n\n{:?}\n\n", result.err().unwrap());
+  }
 
   Ok(decompressed)
 }
@@ -146,6 +151,12 @@ pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result
 mod tests {
   use super::*;
   use std::io::Cursor;
+  use std::io::prelude::*;
+  use structures::EOCD_SIG;
+
+  extern crate flate2;
+  use self::flate2::Compression;
+  use self::flate2::read::DeflateEncoder;
 
   #[test]
   fn get_file() {
@@ -161,6 +172,18 @@ mod tests {
     let res = find_sig_position(&mut cursor, EOCD_SIG);
     assert!(res.is_ok());
     assert_eq!(2u64, res.unwrap());
+  }
+
+  #[test]
+  fn decompress() {
+    let bytes: &[u8] = b"foo bar";
+    let mut encoder = DeflateEncoder::new(bytes, Compression::Default);
+    let mut compressed: Vec<u8> = Vec::new();
+
+    encoder.read_to_end(&mut compressed).unwrap();
+    let decompressed = decompress_file_data(compressed, 8u16).unwrap();
+    
+    assert_eq!(bytes, &decompressed[..]);
   }
 
 }

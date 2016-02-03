@@ -28,12 +28,17 @@ impl ArchiveStructure {
 
 #[derive(Debug, PartialEq)]
 pub enum CompressionMethod {
+  Store,
   Deflate
 }
 
 impl CompressionMethod {
-  fn from_code(code: u16) -> Option<CompressionMethod> {
-    if code == 8u16 { Some(CompressionMethod::Deflate) } else { None }
+  pub fn from_code(code: u16) -> Option<CompressionMethod> {
+    match code {
+      0 => Some(CompressionMethod::Store),
+      8 => Some(CompressionMethod::Deflate),
+      _ => None
+    }
   }
 }
 
@@ -169,7 +174,7 @@ mod tests {
 
   extern crate flate2;
   use self::flate2::Compression;
-  use self::flate2::read::DeflateEncoder;
+  use self::flate2::write::ZlibEncoder;
 
   #[test]
   fn get_file() {
@@ -188,16 +193,37 @@ mod tests {
   }
 
   #[test]
-  fn decompress() {
-    let bytes: &[u8] = b"foo bar";
-    let mut encoder = DeflateEncoder::new(bytes, Compression::Default);
-    let mut compressed: Vec<u8> = Vec::new();
+  fn compress() {
+    let bytes: &[u8] = b"derp\x0a";
+    assert_eq!(5, bytes.len());
 
-    encoder.read_to_end(&mut compressed).unwrap();
-    let decompressed = decompress_file_data(compressed, CompressionMethod::Deflate).unwrap();
-    
-    assert_eq!(bytes, &decompressed[..]);
+    let expected: &[u8] = b"\xea\x9a\x5a\xf6\x4b\x49\x2d\x2a\xe0\x02\x00";
+
+    let mut actual: Vec<u8> = Vec::new();
+    {
+      let mut compressor = ZlibEncoder::new(actual, Compression::Default);
+      compressor.write_all(bytes).unwrap();
+      actual = compressor.finish().unwrap();
+    }
+
+    println!("{:?}", bytes);
+    println!("{:?}", expected);
+    println!("{:?}", actual);
+    assert_eq!(expected.len(), actual.len());
+    assert_eq!(expected, &actual[..]);
   }
+
+  //#[test]
+  //fn decompress() {
+  //  let bytes: &[u8] = b"herp\x0a";
+  //  let mut encoder = DeflateEncoder::new(bytes, Compression::Default);
+  //  let mut compressed: Vec<u8> = Vec::new();
+
+  //  encoder.read_to_end(&mut compressed).unwrap();
+  //  let decompressed = decompress_file_data(compressed, CompressionMethod::Deflate).unwrap();
+  //  
+  //  assert_eq!(bytes, &decompressed[..]);
+  //}
 
   #[test]
   fn deflate_from_code() {

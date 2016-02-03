@@ -1,10 +1,10 @@
-use std::fs::File;
+use std::fs::{DirBuilder, File, OpenOptions};
 use std::io::{self, SeekFrom};
 use std::io::prelude::*;
 use std::path::Path;
 use std::fmt;
 
-use functions::{read_cdfh, read_eocd, read_lfh, read_lfh_raw_data};
+use functions::{CompressionMethod, read_cdfh, read_eocd, read_lfh, read_lfh_raw_data, decompress_file_data};
 
 #[derive(Debug)]
 pub enum Signature {
@@ -58,6 +58,65 @@ impl Archive {
       file: &mut self.file
     };
     Ok(iter)
+  }
+
+  pub fn print_info(&mut self) -> io::Result<()> {
+    {
+      let cdfh_vec: Vec<CentralDirectoryFileHeader> = try!(self.cd_iter()).collect();  
+      for cdfh in cdfh_vec {
+        println!("{}", cdfh);
+  
+        let lfh = try!(self.read_lfh(cdfh.local_file_header_start));
+        println!("{}", lfh);
+      }
+    }
+    {
+      let eocd = try!(self.read_eocd());
+      println!("{}", eocd);
+    }
+    Ok(())
+  }
+
+  pub fn unzip(&mut self) -> io::Result<()> {
+    let cdfh_entries: Vec<CentralDirectoryFileHeader> = try!(self.cd_iter()).collect();
+
+    for cdfh in cdfh_entries {
+      println!("{}", cdfh);
+
+      let mut dir_builder = DirBuilder::new();
+      dir_builder.recursive(true);
+
+      let mut open_opts = OpenOptions::new();
+      open_opts.create(true).write(true);
+
+      if cdfh.is_directory() {
+        println!("create dir {}", cdfh.file_name);
+
+        let dir_path: &Path = Path::new(&cdfh.file_name);
+        try!(dir_builder.create(dir_path));
+      }
+      else if cdfh.is_file() {
+        println!("create file {}", cdfh.file_name);
+
+        let file_path: &Path = Path::new(&cdfh.file_name);
+        let mut file = try!(open_opts.open(file_path));
+
+        if cdfh.uncompressed_size != 0 {
+          println!("get raw data");
+          let raw_data: Vec<u8> = try!(self.read_lfh_raw_data(&cdfh));
+          println!("{:?}", raw_data);
+
+          println!("get compression method");
+          let compression_method = CompressionMethod::from_code(cdfh.compression_method).unwrap();
+          println!("decompress data");
+          let uncompressed: Vec<u8> = try!(decompress_file_data(raw_data, compression_method));
+          println!("write uncompressed data");
+          try!(file.write_all(&uncompressed[..]))
+        }
+      }
+    }
+
+    Ok(())
   }
 }
 

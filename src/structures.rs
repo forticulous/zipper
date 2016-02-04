@@ -96,12 +96,12 @@ impl Archive {
           let raw_data: Vec<u8> = try!(self.read_lfh_raw_data(&cdfh));
 
           let compression_method = CompressionMethod::from_code(cdfh.compression_method).unwrap();
-          let uncompressed: Vec<u8> = try!(decompress_file_data(raw_data, compression_method));
+          let decompressed: Vec<u8> = try!(decompress_file_data(raw_data, compression_method));
           
           let file_path: &Path = cdfh.as_path();
           let mut file = try!(open_opts.open(file_path));
 
-          try!(file.write_all(&uncompressed[..]))
+          try!(file.write_all(&decompressed[..]))
         }
       }
     }

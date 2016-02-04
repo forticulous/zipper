@@ -1,7 +1,7 @@
 use std::fmt;
 use std::path::Path;
 
-use enums::Signature;
+use enums::{CompressionMethod, Signature};
 
 #[repr(packed)]
 #[derive(Debug)]
@@ -64,6 +64,10 @@ impl CentralDirectoryFileHeader {
 
   pub fn as_path(&self) -> &Path {
     Path::new(&self.file_name)
+  }
+
+  pub fn as_compression_method(&self) -> Option<CompressionMethod> {
+    CompressionMethod::from_code(self.compression_method)
   }
 }
 

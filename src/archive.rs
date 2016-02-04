@@ -3,7 +3,6 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::fs::{DirBuilder, File, OpenOptions};
 
-use enums::CompressionMethod;
 use functions::{decompress_file_data, read_lfh, read_lfh_raw_data, read_eocd};
 use lfh::LocalFileHeader;
 use cdfh::CentralDirectoryFileHeader;
@@ -82,7 +81,7 @@ impl Archive {
         if cdfh.compressed_size != 0 {
           let raw_data: Vec<u8> = try!(self.read_lfh_raw_data(&cdfh));
 
-          let compression_method = CompressionMethod::from_code(cdfh.compression_method).unwrap();
+          let compression_method = cdfh.as_compression_method().unwrap();
           let decompressed: Vec<u8> = try!(decompress_file_data(raw_data, compression_method));
           
           let file_path: &Path = cdfh.as_path();

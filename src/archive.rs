@@ -1,13 +1,13 @@
-use std::io::{self, SeekFrom};
-use std::io::prelude::*;
-use std::path::Path;
 use std::fs::{DirBuilder, File, OpenOptions};
+use std::io::prelude::*;
+use std::io::{self, SeekFrom};
+use std::path::Path;
 
+use cdfh::CentralDirectoryFileHeader;
+use central_directory_iter::CentralDirectoryIter;
+use eocd::EndOfCentralDirectory;
 use functions::{decompress_file_data, read_lfh, read_lfh_raw_data, read_eocd};
 use lfh::LocalFileHeader;
-use cdfh::CentralDirectoryFileHeader;
-use eocd::EndOfCentralDirectory;
-use central_directory_iter::CentralDirectoryIter;
 
 pub struct Archive {
   file: File

@@ -3,21 +3,14 @@ use std::io::prelude::*;
 use std::io::{self, BufReader,  SeekFrom, Error, ErrorKind};
 use std::mem;
 use std::slice;
-use std::path::Path;
 
 extern crate flate2;
 use self::flate2::write::DeflateDecoder;
 
 use cdfh::CentralDirectoryFileHeader;
+use enums::{ArchiveStructure, CompressionMethod};
 use eocd::EndOfCentralDirectory;
 use lfh::LocalFileHeader;
-use enums::{ArchiveStructure, CompressionMethod};
-
-pub fn open_file(filename: &String) -> io::Result<File> {
-  let path: &Path = Path::new(filename);  
-  let file = try!(File::open(path));
-  Ok(file)
-}
 
 pub fn read_string(file: &mut File, len: usize) -> io::Result<String> {
   let mut v: Vec<u8> = Vec::with_capacity(len);

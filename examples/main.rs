@@ -10,7 +10,7 @@ fn main() {
   let path: &Path = Path::new(&filename);
 
   let mut archive = Archive::new(path).expect("Failed to open archive");
-  archive.print_info().expect("print_info panic");
-  //archive.unzip().expect("unzip panic");
+  //archive.print_info().expect("print_info panic");
+  archive.unzip().expect("unzip panic");
 }
 

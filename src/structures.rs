@@ -81,8 +81,6 @@ impl Archive {
     let cdfh_entries: Vec<CentralDirectoryFileHeader> = try!(self.cd_iter()).collect();
 
     for cdfh in cdfh_entries {
-      println!("{}", cdfh);
-
       let mut dir_builder = DirBuilder::new();
       dir_builder.recursive(true);
 
@@ -90,27 +88,19 @@ impl Archive {
       open_opts.create(true).write(true);
 
       if cdfh.is_directory() {
-        println!("create dir {}", cdfh.file_name);
-
-        let dir_path: &Path = Path::new(&cdfh.file_name);
+        let dir_path: &Path = cdfh.as_path();
         try!(dir_builder.create(dir_path));
       }
       else if cdfh.is_file() {
-        println!("create file {}", cdfh.file_name);
-
-        let file_path: &Path = Path::new(&cdfh.file_name);
-        let mut file = try!(open_opts.open(file_path));
-
-        if cdfh.uncompressed_size != 0 {
-          println!("get raw data");
+        if cdfh.compressed_size != 0 {
           let raw_data: Vec<u8> = try!(self.read_lfh_raw_data(&cdfh));
-          println!("{:?}", raw_data);
 
-          println!("get compression method");
           let compression_method = CompressionMethod::from_code(cdfh.compression_method).unwrap();
-          println!("decompress data");
           let uncompressed: Vec<u8> = try!(decompress_file_data(raw_data, compression_method));
-          println!("write uncompressed data");
+          
+          let file_path: &Path = cdfh.as_path();
+          let mut file = try!(open_opts.open(file_path));
+
           try!(file.write_all(&uncompressed[..]))
         }
       }
@@ -195,6 +185,10 @@ impl CentralDirectoryFileHeader {
 
   pub fn is_file(&self) -> bool {
     !self.file_name.is_empty() && !self.file_name.ends_with("/")
+  }
+
+  pub fn as_path(&self) -> &Path {
+    Path::new(&self.file_name)
   }
 }
 

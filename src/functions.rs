@@ -119,10 +119,15 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
 }
 
 pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> io::Result<Vec<u8>> {
+  // TODO: I don't know why but the compressed data is offset by 4 bytes
+  // Can't figure out where it comes from though...
+  let mystery_header: usize = 4;
+
   let lfh_data_start = cdfh.local_file_header_start as usize +
     ArchiveStructure::LocalFileHeader.constant_size_of() +
     cdfh.file_name_len as usize +
-    cdfh.extra_field_len as usize;
+    cdfh.extra_field_len as usize + 
+    mystery_header;
   let data_len = cdfh.compressed_size as usize;
 
   try!(file.seek(SeekFrom::Start(lfh_data_start as u64)));
@@ -193,37 +198,19 @@ mod tests {
   }
 
   #[test]
-  fn compress() {
-    let bytes: &[u8] = b"derp\x0a";
-    assert_eq!(5, bytes.len());
+  fn decompress() {
+    let bytes: &[u8] = b"herp\x0a";
 
-    let expected: &[u8] = b"\xea\x9a\x5a\xf6\x4b\x49\x2d\x2a\xe0\x02\x00";
-
-    let actual: Vec<u8> = {
+    let compressed: Vec<u8> = {
       let vec: Vec<u8> = Vec::new();
-      let mut compressor = DeflateEncoder::new(vec, Compression::Default);
-      compressor.write_all(bytes).unwrap();
-      compressor.finish().unwrap()
+      let mut encoder = DeflateEncoder::new(vec, Compression::Default);
+      encoder.write_all(bytes).unwrap();
+      encoder.finish().unwrap()
     };
-
-    println!("{:?}", bytes);
-    println!("{:?}", expected);
-    println!("{:?}", actual);
-    assert_eq!(expected.len(), actual.len());
-    assert_eq!(expected, &actual[..]);
+    let decompressed = decompress_file_data(compressed, CompressionMethod::Deflate).unwrap();
+    
+    assert_eq!(bytes, &decompressed[..]);
   }
-
-  //#[test]
-  //fn decompress() {
-  //  let bytes: &[u8] = b"herp\x0a";
-  //  let mut encoder = DeflateEncoder::new(bytes, Compression::Default);
-  //  let mut compressed: Vec<u8> = Vec::new();
-
-  //  encoder.read_to_end(&mut compressed).unwrap();
-  //  let decompressed = decompress_file_data(compressed, CompressionMethod::Deflate).unwrap();
-  //  
-  //  assert_eq!(bytes, &decompressed[..]);
-  //}
 
   #[test]
   fn deflate_from_code() {

@@ -83,18 +83,14 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
 }
 
 pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> io::Result<Vec<u8>> {
-    // TODO: I don't know why but the compressed data is offset by 4 bytes
-    // Can't figure out where it comes from though...
-    let mystery_header: usize = 4;
-
-    let lfh_data_start = cdfh.local_file_header_start as usize +
+    let lfh = try!(read_lfh(file, cdfh.local_file_header_start));
+    let data_start = cdfh.local_file_header_start as usize +
         ArchiveStructure::LocalFileHeader.constant_size_of() +
-        cdfh.file_name_len as usize +
-        cdfh.extra_field_len as usize + 
-        mystery_header;
+        lfh.file_name_len as usize +
+        lfh.extra_field_len as usize;
     let data_len = cdfh.compressed_size as usize;
 
-    try!(file.seek(SeekFrom::Start(lfh_data_start as u64)));
+    try!(file.seek(SeekFrom::Start(data_start as u64)));
 
     let mut buf_read = BufReader::with_capacity(data_len, file);
     let bytes: Vec<u8> = try!(buf_read.fill_buf()).to_vec();

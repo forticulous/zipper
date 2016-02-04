@@ -154,12 +154,6 @@ mod tests {
   use self::flate2::write::DeflateEncoder;
 
   #[test]
-  fn get_file() {
-    let result = open_file(&String::from("archive.zip"));
-    assert!(result.is_ok());
-  }
-
-  #[test]
   fn find_sig_eocd() {
     let bytes: &[u8] = &[0, 0, 0x50, 0x4b, 0x05, 0x06, 0, 0];  
     let mut cursor = Cursor::new(bytes);

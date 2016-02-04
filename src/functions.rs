@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, BufReader,  SeekFrom, Error, ErrorKind};
+use std::io::{self, BufReader, SeekFrom, Error, ErrorKind};
 use std::mem;
 use std::slice;
 

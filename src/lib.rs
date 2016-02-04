@@ -1,5 +1,4 @@
 mod functions;
-pub use functions::*;
 
 mod enums;
 pub use enums::CompressionMethod;

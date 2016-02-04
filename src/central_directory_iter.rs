@@ -11,12 +11,6 @@ impl<'a> Iterator for CentralDirectoryIter<'a> {
   type Item = CentralDirectoryFileHeader;
 
   fn next(&mut self) -> Option<CentralDirectoryFileHeader> {
-    let result = read_cdfh(self.file);
-    if result.is_err() {
-        return None;
-    }
-
-    let cdfh = result.unwrap();
-    Some(cdfh)
+    read_cdfh(self.file).ok()
   }
 }

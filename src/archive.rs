@@ -38,7 +38,7 @@ impl Archive {
   pub fn cd_iter(&mut self) -> io::Result<CentralDirectoryIter> {
     let eocd = try!(self.read_eocd());
     let cdfh_start: u32 = eocd.cd_start_offset;
-    self.file.seek(SeekFrom::Start(cdfh_start as u64)).expect("Failed to seek");
+    try!(self.file.seek(SeekFrom::Start(cdfh_start as u64)));
 
     let iter = CentralDirectoryIter {
       file: &mut self.file

@@ -1,12 +1,12 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, BufReader, Cursor, SeekFrom, Error, ErrorKind};
+use std::io::{self, BufReader,  SeekFrom, Error, ErrorKind};
 use std::mem;
 use std::slice;
 use std::path::Path;
 
 extern crate flate2;
-use self::flate2::read::DeflateDecoder;
+use self::flate2::write::DeflateDecoder;
 
 use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory, LocalFileHeader};
 
@@ -141,15 +141,12 @@ pub fn decompress_file_data(raw: Vec<u8>, method: CompressionMethod) -> io::Resu
     return Err(Error::new(ErrorKind::Other, "Unsupported compression method"));
   }
 
-  let mut decompressed: Vec<u8> = Vec::with_capacity(raw.len());
-  let raw_cursor = Cursor::new(raw);
-  let mut decoder = DeflateDecoder::new(raw_cursor);
-
-  let result = decoder.read_to_end(&mut decompressed);
-
-  if result.is_err() {
-    println!("\n\n{:?}\n\n", result.err().unwrap());
-  }
+  let decompressed: Vec<u8> = {
+    let vec = Vec::with_capacity(raw.len());
+    let mut decompressor = DeflateDecoder::new(vec);
+    try!(decompressor.write_all(&raw[..]));
+    try!(decompressor.finish())
+  };
 
   Ok(decompressed)
 }
@@ -177,7 +174,7 @@ mod tests {
 
   extern crate flate2;
   use self::flate2::Compression;
-  use self::flate2::write::ZlibEncoder;
+  use self::flate2::write::DeflateEncoder;
 
   #[test]
   fn get_file() {
@@ -202,12 +199,12 @@ mod tests {
 
     let expected: &[u8] = b"\xea\x9a\x5a\xf6\x4b\x49\x2d\x2a\xe0\x02\x00";
 
-    let mut actual: Vec<u8> = Vec::new();
-    {
-      let mut compressor = ZlibEncoder::new(actual, Compression::Default);
+    let actual: Vec<u8> = {
+      let vec: Vec<u8> = Vec::new();
+      let mut compressor = DeflateEncoder::new(vec, Compression::Default);
       compressor.write_all(bytes).unwrap();
-      actual = compressor.finish().unwrap();
-    }
+      compressor.finish().unwrap()
+    };
 
     println!("{:?}", bytes);
     println!("{:?}", expected);

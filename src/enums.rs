@@ -6,7 +6,7 @@ pub enum ArchiveStructure {
 }
 
 impl ArchiveStructure {
-    pub fn constant_size_of(&self) -> usize {
+    pub fn constant_size(&self) -> usize {
         match *self {
             ArchiveStructure::CentralDirectoryFileHeader => 46,
             ArchiveStructure::EndOfCentralDirectory      => 22,

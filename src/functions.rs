@@ -27,7 +27,7 @@ pub fn read_cdfh(file: &mut File) -> io::Result<CentralDirectoryFileHeader> {
 
     {
         let slice: &mut [u8] = unsafe { 
-            slice::from_raw_parts_mut(&mut cdfh as *mut _ as *mut u8, ArchiveStructure::CentralDirectoryFileHeader.constant_size_of()) 
+            slice::from_raw_parts_mut(&mut cdfh as *mut _ as *mut u8, ArchiveStructure::CentralDirectoryFileHeader.constant_size()) 
         };
         try!(file.read_exact(slice));
     }
@@ -53,7 +53,7 @@ pub fn read_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
     try!(file.seek(SeekFrom::Start(eocd_start)));
 
     let slice: &mut [u8] = unsafe { 
-        slice::from_raw_parts_mut(&mut eocd as *mut _ as *mut u8, ArchiveStructure::EndOfCentralDirectory.constant_size_of())
+        slice::from_raw_parts_mut(&mut eocd as *mut _ as *mut u8, ArchiveStructure::EndOfCentralDirectory.constant_size())
     };
     try!(file.read_exact(slice));
 
@@ -67,7 +67,7 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
 
     {
         let slice: &mut [u8] = unsafe {
-            slice::from_raw_parts_mut(&mut lfh as *mut _ as *mut u8, ArchiveStructure::LocalFileHeader.constant_size_of())
+            slice::from_raw_parts_mut(&mut lfh as *mut _ as *mut u8, ArchiveStructure::LocalFileHeader.constant_size())
         };
         try!(file.read_exact(slice));
     }
@@ -85,7 +85,7 @@ pub fn read_lfh(file: &mut File, lfh_start: u32) -> io::Result<LocalFileHeader> 
 pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> io::Result<Vec<u8>> {
     let lfh = try!(read_lfh(file, cdfh.local_file_header_start));
     let data_start = cdfh.local_file_header_start as usize +
-        ArchiveStructure::LocalFileHeader.constant_size_of() +
+        ArchiveStructure::LocalFileHeader.constant_size() +
         lfh.file_name_len as usize +
         lfh.extra_field_len as usize;
     let data_len = cdfh.compressed_size as usize;

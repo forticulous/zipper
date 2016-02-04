@@ -8,39 +8,10 @@ use std::path::Path;
 extern crate flate2;
 use self::flate2::write::DeflateDecoder;
 
-use structures::{CentralDirectoryFileHeader, EndOfCentralDirectory, LocalFileHeader};
-
-enum ArchiveStructure {
-  CentralDirectoryFileHeader,
-  EndOfCentralDirectory,
-  LocalFileHeader
-}
-
-impl ArchiveStructure {
-  fn constant_size_of(&self) -> usize {
-    match *self {
-      ArchiveStructure::CentralDirectoryFileHeader => 46,
-      ArchiveStructure::EndOfCentralDirectory      => 22,
-      ArchiveStructure::LocalFileHeader            => 30
-    }
-  }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum CompressionMethod {
-  Store,
-  Deflate
-}
-
-impl CompressionMethod {
-  pub fn from_code(code: u16) -> Option<CompressionMethod> {
-    match code {
-      0 => Some(CompressionMethod::Store),
-      8 => Some(CompressionMethod::Deflate),
-      _ => None
-    }
-  }
-}
+use cdfh::CentralDirectoryFileHeader;
+use eocd::EndOfCentralDirectory;
+use lfh::LocalFileHeader;
+use enums::{ArchiveStructure, CompressionMethod};
 
 pub fn open_file(filename: &String) -> io::Result<File> {
   let path: &Path = Path::new(filename);  
@@ -175,7 +146,8 @@ mod tests {
   use super::*;
   use std::io::Cursor;
   use std::io::prelude::*;
-  use structures::Signature;
+
+  use enums::{Signature, CompressionMethod};
 
   extern crate flate2;
   use self::flate2::Compression;

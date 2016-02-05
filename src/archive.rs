@@ -99,7 +99,7 @@ impl Archive {
 
                     let mut file = try!(open_opts.open(file_path));
 
-                    try!(file.write_all(&decompressed[..]))
+                    try!(file.write_all(&decompressed))
                 }
             }
         }

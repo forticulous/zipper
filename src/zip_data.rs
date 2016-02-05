@@ -49,7 +49,7 @@ impl ZipData {
         let decompressed: Vec<u8> = {
             let vec = Vec::with_capacity(self.raw.len());
             let mut decompressor = DeflateDecoder::new(vec);
-            try!(decompressor.write_all(&self.raw[..]));
+            try!(decompressor.write_all(&self.raw));
             try!(decompressor.finish())
         };
 
@@ -86,7 +86,7 @@ mod tests {
         let zip_data = ZipData::new(String::from("herp.txt"), CompressionMethod::Deflate, compressed);
         let decompressed = zip_data.into_decompressed_bytes().unwrap();
 
-        assert_eq!(bytes, &decompressed[..]);
+        assert_eq!(bytes, &decompressed as &[u8]);
     }
 
 }

@@ -17,3 +17,9 @@ pub use eocd::EndOfCentralDirectory;
 
 mod lfh;
 pub use lfh::LocalFileHeader;
+
+mod zip_data;
+pub use zip_data::ZipData;
+
+mod zip_data_iter;
+pub use zip_data_iter::ZipDataIter;

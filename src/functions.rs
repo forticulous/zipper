@@ -4,11 +4,8 @@ use std::io::{self, BufReader, SeekFrom, Error, ErrorKind};
 use std::mem;
 use std::slice;
 
-extern crate flate2;
-use self::flate2::write::DeflateDecoder;
-
 use cdfh::CentralDirectoryFileHeader;
-use enums::{ArchiveStructure, CompressionMethod};
+use enums::ArchiveStructure;
 use eocd::EndOfCentralDirectory;
 use lfh::LocalFileHeader;
 
@@ -98,24 +95,6 @@ pub fn read_lfh_raw_data(file: &mut File, cdfh: &CentralDirectoryFileHeader) -> 
     Ok(bytes)
 }
 
-pub fn decompress_file_data(raw: Vec<u8>, method: CompressionMethod) -> io::Result<Vec<u8>> {
-    if CompressionMethod::Store == method {
-        return Ok(raw);
-    }
-    if CompressionMethod::Deflate != method {
-        return Err(Error::new(ErrorKind::Other, "Unsupported compression method"));
-    }
-
-    let decompressed: Vec<u8> = {
-        let vec = Vec::with_capacity(raw.len());
-        let mut decompressor = DeflateDecoder::new(vec);
-        try!(decompressor.write_all(&raw[..]));
-        try!(decompressor.finish())
-    };
-
-    Ok(decompressed)
-}
-
 pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result<u64> {
     try!(source.seek(SeekFrom::Start(0)));
 
@@ -134,13 +113,8 @@ pub fn find_sig_position<T: Seek + Read>(source: &mut T, sig: u32) -> io::Result
 mod tests {
     use super::*;
     use std::io::Cursor;
-    use std::io::prelude::*;
 
     use enums::{Signature, CompressionMethod};
-
-    extern crate flate2;
-    use self::flate2::Compression;
-    use self::flate2::write::DeflateEncoder;
 
     #[test]
     fn find_sig_eocd() {
@@ -150,21 +124,6 @@ mod tests {
         let res = find_sig_position(&mut cursor, Signature::EndOfCentralDirectory.sig_byte());
         assert!(res.is_ok());
         assert_eq!(2u64, res.unwrap());
-    }
-
-    #[test]
-    fn decompress() {
-        let bytes: &[u8] = b"herp\x0a";
-
-        let compressed: Vec<u8> = {
-            let vec: Vec<u8> = Vec::new();
-            let mut encoder = DeflateEncoder::new(vec, Compression::Default);
-            encoder.write_all(bytes).unwrap();
-            encoder.finish().unwrap()
-        };
-        let decompressed = decompress_file_data(compressed, CompressionMethod::Deflate).unwrap();
-
-        assert_eq!(bytes, &decompressed[..]);
     }
 
     #[test]

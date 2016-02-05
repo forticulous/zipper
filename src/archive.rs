@@ -1,13 +1,14 @@
 use std::fs::{DirBuilder, File, OpenOptions};
 use std::io::prelude::*;
 use std::io::{self, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use cdfh::CentralDirectoryFileHeader;
 use central_directory_iter::CentralDirectoryIter;
 use eocd::EndOfCentralDirectory;
-use functions::{decompress_file_data, read_lfh, read_lfh_raw_data, read_eocd};
+use functions::{read_lfh, read_lfh_raw_data, read_eocd};
 use lfh::LocalFileHeader;
+use zip_data_iter::ZipDataIter;
 
 pub struct Archive {
     file: File
@@ -35,10 +36,24 @@ impl Archive {
         read_lfh_raw_data(&mut self.file, cdfh)
     }
 
-    pub fn cd_iter(&mut self) -> io::Result<CentralDirectoryIter> {
+    fn seek_to_cd_start(&mut self) -> io::Result<()> {
         let eocd = try!(self.read_eocd());
         let cdfh_start: u32 = eocd.cd_start_offset;
         try!(self.file.seek(SeekFrom::Start(cdfh_start as u64)));
+        Ok(())
+    }
+     
+    pub fn zip_data_iter(&mut self) -> io::Result<ZipDataIter> {
+        try!(self.seek_to_cd_start());
+
+        let iter = ZipDataIter {
+            file: &mut self.file
+        };
+        Ok(iter)
+    }
+
+    pub fn cd_iter(&mut self) -> io::Result<CentralDirectoryIter> {
+        try!(self.seek_to_cd_start());
 
         let iter = CentralDirectoryIter {
             file: &mut self.file
@@ -64,27 +79,24 @@ impl Archive {
     }
 
     pub fn unzip(&mut self) -> io::Result<()> {
-        let cdfh_entries: Vec<CentralDirectoryFileHeader> = try!(self.cd_iter()).collect();
+        let zip_data_iter = try!(self.zip_data_iter());
 
-        for cdfh in cdfh_entries {
+        for zip_data in zip_data_iter {
             let mut dir_builder = DirBuilder::new();
             dir_builder.recursive(true);
 
             let mut open_opts = OpenOptions::new();
             open_opts.create(true).write(true);
 
-            if cdfh.is_directory() {
-                let dir_path: &Path = cdfh.as_path();
+            if zip_data.is_directory() {
+                let dir_path: &Path = zip_data.as_path();
                 try!(dir_builder.create(dir_path));
             }
-            else if cdfh.is_file() {
-                if cdfh.compressed_size != 0 {
-                    let raw_data: Vec<u8> = try!(self.read_lfh_raw_data(&cdfh));
+            else if zip_data.is_file() {
+                if zip_data.compressed_size() != 0 {
+                    let file_path: PathBuf = zip_data.as_path().to_path_buf();
+                    let decompressed: Vec<u8> = try!(zip_data.into_decompressed_bytes());
 
-                    let compression_method = cdfh.as_compression_method().unwrap();
-                    let decompressed: Vec<u8> = try!(decompress_file_data(raw_data, compression_method));
-
-                    let file_path: &Path = cdfh.as_path();
                     let mut file = try!(open_opts.open(file_path));
 
                     try!(file.write_all(&decompressed[..]))

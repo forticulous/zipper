@@ -54,6 +54,10 @@ pub fn read_eocd(file: &mut File) -> io::Result<EndOfCentralDirectory> {
     };
     try!(file.read_exact(slice));
 
+    if eocd.cd_start_disk != eocd.this_disk_num {
+        return Err(Error::new(ErrorKind::Other, "Archive spanning multiple volumes not supported"));
+    }
+
     Ok(eocd)
 }
 

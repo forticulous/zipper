@@ -4,9 +4,8 @@ use std::io::{self, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use cdfh::CentralDirectoryFileHeader;
-use central_directory_iter::CentralDirectoryIter;
 use eocd::EndOfCentralDirectory;
-use functions::{read_lfh, read_lfh_raw_data, read_eocd};
+use functions::{read_lfh, read_lfh_raw_data, read_eocd, read_cdfh};
 use lfh::LocalFileHeader;
 use zip_data_iter::ZipDataIter;
 
@@ -52,22 +51,21 @@ impl Archive {
         Ok(iter)
     }
 
-    pub fn cd_iter(&mut self) -> io::Result<CentralDirectoryIter> {
-        try!(self.seek_to_cd_start());
-
-        let iter = CentralDirectoryIter {
-            file: &mut self.file
-        };
-        Ok(iter)
-    }
-
     pub fn print_info(&mut self) -> io::Result<()> {
+        try!(self.seek_to_cd_start());
         {
-            let cdfh_vec: Vec<CentralDirectoryFileHeader> = try!(self.cd_iter()).collect();  
-            for cdfh in cdfh_vec {
+            loop {
+                let result = read_cdfh(&mut self.file);
+                if result.is_err() {
+                    break;
+                }
+                let cdfh = result.unwrap();
                 println!("{}", cdfh);
 
+                let current = try!(self.file.seek(SeekFrom::Current(0)));
                 let lfh = try!(self.read_lfh(cdfh.local_file_header_start));
+                try!(self.file.seek(SeekFrom::Start(current)));
+
                 println!("{}", lfh);
             }
         }

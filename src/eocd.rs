@@ -32,16 +32,16 @@ impl EndOfCentralDirectory {
 
 impl fmt::Display for EndOfCentralDirectory {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "EndOfCentralDirectory {{ ").and(
-        writeln!(f, "  sig: {:08x},", self.sig)).and(
-        writeln!(f, "  this_disk_num: {},", self.this_disk_num)).and(
-        writeln!(f, "  cd_start_disk: {},", self.cd_start_disk)).and(
-        writeln!(f, "  cd_records_on_this_disk: {},", self.cd_records_on_this_disk)).and(
-        writeln!(f, "  total_cd_records: {},", self.total_cd_records)).and(
-        writeln!(f, "  cd_size_bytes: {},", self.cd_size_bytes)).and(
-        writeln!(f, "  cd_start_offset: {},", self.cd_start_offset)).and(
-        writeln!(f, "  comment_len: {}", self.comment_len)).and(
-        writeln!(f, "}}"))
+        try!(writeln!(f, "EndOfCentralDirectory {{ "));
+        try!(writeln!(f, "  sig: {:08x},", self.sig));
+        try!(writeln!(f, "  this_disk_num: {},", self.this_disk_num));
+        try!(writeln!(f, "  cd_start_disk: {},", self.cd_start_disk));
+        try!(writeln!(f, "  cd_records_on_this_disk: {},", self.cd_records_on_this_disk));
+        try!(writeln!(f, "  total_cd_records: {},", self.total_cd_records));
+        try!(writeln!(f, "  cd_size_bytes: {},", self.cd_size_bytes));
+        try!(writeln!(f, "  cd_start_offset: {},", self.cd_start_offset));
+        try!(writeln!(f, "  comment_len: {}", self.comment_len));
+        writeln!(f, "}}")
     }
 }
 

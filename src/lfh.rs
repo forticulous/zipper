@@ -50,20 +50,20 @@ impl LocalFileHeader {
 
 impl fmt::Display for LocalFileHeader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "LocalFileHeader {{ ").and(
-        writeln!(f, "  sig: {:08x},", self.sig)).and(
-        writeln!(f, "  extract_ver: {},", self.extract_ver)).and(
-        writeln!(f, "  general_bit_flag: {},", self.general_bit_flag)).and(
-        writeln!(f, "  compression_method: {},", self.compression_method)).and(
-        writeln!(f, "  last_modified_time: {},", self.last_modified_time)).and(
-        writeln!(f, "  last_modified_date: {},", self.last_modified_date)).and(
-        writeln!(f, "  crc_32: {},", self.crc_32)).and(
-        writeln!(f, "  compressed_size: {},", self.compressed_size)).and(
-        writeln!(f, "  uncompressed_size: {},", self.uncompressed_size)).and(
-        writeln!(f, "  file_name_len: {},", self.file_name_len)).and(
-        writeln!(f, "  extra_field_len: {},", self.extra_field_len)).and(
-        writeln!(f, "  file_name: \"{}\",", self.file_name)).and(
-        writeln!(f, "  extra_field: \"{}\"", self.extra_field)).and(
-        writeln!(f, "}}"))
+        try!(writeln!(f, "LocalFileHeader {{ "));
+        try!(writeln!(f, "  sig: {:08x},", self.sig));
+        try!(writeln!(f, "  extract_ver: {},", self.extract_ver));
+        try!(writeln!(f, "  general_bit_flag: {},", self.general_bit_flag));
+        try!(writeln!(f, "  compression_method: {},", self.compression_method));
+        try!(writeln!(f, "  last_modified_time: {},", self.last_modified_time));
+        try!(writeln!(f, "  last_modified_date: {},", self.last_modified_date));
+        try!(writeln!(f, "  crc_32: {},", self.crc_32));
+        try!(writeln!(f, "  compressed_size: {},", self.compressed_size));
+        try!(writeln!(f, "  uncompressed_size: {},", self.uncompressed_size));
+        try!(writeln!(f, "  file_name_len: {},", self.file_name_len));
+        try!(writeln!(f, "  extra_field_len: {},", self.extra_field_len));
+        try!(writeln!(f, "  file_name: \"{}\",", self.file_name));
+        try!(writeln!(f, "  extra_field: \"{}\"", self.extra_field));
+        writeln!(f, "}}")
     }
 }

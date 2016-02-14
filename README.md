@@ -14,7 +14,7 @@ use std::path::Path;
 use zipper::Archive;
 
 fn main() {
-    let path = Path::new("archive.zip");
+    let path: &Path = Path::new("archive.zip");
     let archive = Archive::new(path).expect("new archive panic");
     archive.unzip().expect("unzip panic");
 }

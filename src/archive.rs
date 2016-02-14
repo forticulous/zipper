@@ -14,7 +14,7 @@ pub struct Archive {
 }
 
 impl Archive {
-    pub fn new(path: &Path) -> io::Result<Archive> {
+    pub fn new<T: AsRef<Path>>(path: T) -> io::Result<Archive> {
         let file = try!(File::open(path));
 
         let archive = Archive {
